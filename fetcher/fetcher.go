@@ -6,12 +6,11 @@ import (
 	"time"
 )
 
-func Fetch() ([]byte, error) {
-	dummyUrl, timeout1 := "https://go.dev/doc/", 10*time.Second
+func Fetch(url string, timeout time.Duration) ([]byte, error) {
 	client := http.Client{
-		Timeout: timeout1,
+		Timeout: timeout,
 	}
-	resp, err := client.Get(dummyUrl)
+	resp, err := client.Get(url)
 	if err != nil {
 		return nil, err
 	}
