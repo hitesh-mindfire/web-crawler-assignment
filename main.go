@@ -9,7 +9,7 @@ import (
 
 func main() {
 	var startURL string
-	fmt.Print("Enter the starting URL: ")
+	fmt.Println("Enter the starting URL:")
 	fmt.Scanln(&startURL)
 	maxDepth := 2
 	timeout := 2 * time.Second
