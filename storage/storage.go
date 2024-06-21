@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"log"
+	"os"
 	"sync"
 )
 
@@ -35,6 +37,10 @@ func (ps *PageStorage) StoreContent(url string, content []byte) {
 	ps.mutex.Lock()
 	defer ps.mutex.Unlock()
 	ps.pageContent[url] = content
+	err := storeUrlToFile("crawler_results.txt", url)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 func (ps *PageStorage) GetContent(url string) ([]byte, bool) {
@@ -42,4 +48,19 @@ func (ps *PageStorage) GetContent(url string) ([]byte, bool) {
 	defer ps.mutex.Unlock()
 	content, exists := ps.pageContent[url]
 	return content, exists
+}
+
+func storeUrlToFile(filename, url string) error {
+	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = file.WriteString("URL: " + url + "\n")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
