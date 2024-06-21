@@ -1,7 +1,6 @@
 package crawler
 
 import (
-	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -18,7 +17,6 @@ type Crawler struct {
 	wg        sync.WaitGroup
 	urlChan   chan string
 	depthChan chan int
-	filename  string
 }
 
 func NewCrawler(startURL string, maxDepth int, timeout time.Duration) *Crawler {
@@ -33,7 +31,7 @@ func NewCrawler(startURL string, maxDepth int, timeout time.Duration) *Crawler {
 }
 
 func (c *Crawler) Start() error {
-	log.Println("Start crawler")
+	log.Println("Start crawler", c)
 
 	c.wg.Add(1)
 	go c.crawl(c.startURL, 0)
@@ -49,7 +47,7 @@ func (c *Crawler) Start() error {
 	}()
 
 	c.wg.Wait()
-	log.Println("finished crawler")
+	log.Println("finished crawler", c)
 	return nil
 }
 
@@ -69,7 +67,13 @@ func (c *Crawler) crawl(url string, depth int) {
 	}
 
 	c.storage.StoreContent(url, data)
-
+	// content, err1 := c.storage.GetContent(url)
 	links := parser.Parse(data)
-	fmt.Println(links, data, "links")
+	// log.Println(links,content, err1, "links")
+	for _, link := range links {
+		if !c.storage.HasVisited(link) {
+			c.urlChan <- link
+			c.depthChan <- depth + 1
+		}
+	}
 }
