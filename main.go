@@ -1,13 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 	"web-crawler-assignment/crawler"
 )
 
 func main() {
-	startURL := "https://go.dev/doc/"
+	var startURL string
+	fmt.Print("Enter the starting URL: ")
+	fmt.Scanln(&startURL)
 	maxDepth := 2
 	timeout := 2 * time.Second
 	c := crawler.NewCrawler(startURL, maxDepth, timeout)
