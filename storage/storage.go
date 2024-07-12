@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"encoding/json"
 	"log"
 	"os"
 	"sync"
@@ -9,16 +10,18 @@ import (
 type PageStorage struct {
 	visitedUrls map[string]bool
 	pageContent map[string][]byte
+	jsonOutput  bool
 	mutex       sync.Mutex
+	urls        []string
 }
 
-func NewPageStorage() *PageStorage {
-	res := PageStorage{
+func NewPageStorage(jsonOutput bool) *PageStorage {
+	return &PageStorage{
 		visitedUrls: make(map[string]bool),
 		pageContent: make(map[string][]byte),
+		jsonOutput:  jsonOutput,
+		urls:        []string{},
 	}
-	newPage := &res
-	return newPage
 }
 
 func (ps *PageStorage) MarkVisited(url string) {
@@ -37,9 +40,14 @@ func (ps *PageStorage) StoreContent(url string, content []byte) {
 	ps.mutex.Lock()
 	defer ps.mutex.Unlock()
 	ps.pageContent[url] = content
-	err := storeUrlToFile("crawler_results.txt", url)
-	if err != nil {
-		log.Println(err)
+
+	if ps.jsonOutput {
+		ps.urls = append(ps.urls, url)
+	} else {
+		err := storeUrlToFile("crawler_results.txt", url)
+		if err != nil {
+			log.Println(err)
+		}
 	}
 }
 
@@ -50,6 +58,26 @@ func (ps *PageStorage) GetContent(url string) ([]byte, bool) {
 	return content, exists
 }
 
+func (ps *PageStorage) IsJSONOutput() bool {
+	return ps.jsonOutput
+}
+
+func (ps *PageStorage) WriteJSONToFile(filename string) error {
+	ps.mutex.Lock()
+	defer ps.mutex.Unlock()
+
+	data := map[string]interface{}{
+		"urls": ps.urls,
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(filename, jsonData, 0644)
+}
+
 func storeUrlToFile(filename, url string) error {
 	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
@@ -58,9 +86,5 @@ func storeUrlToFile(filename, url string) error {
 	defer file.Close()
 
 	_, err = file.WriteString("URL: " + url + "\n")
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

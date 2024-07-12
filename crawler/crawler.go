@@ -13,18 +13,20 @@ type Crawler struct {
 	startURL  string
 	maxDepth  int
 	timeout   time.Duration
+	proxyUrl  string
 	storage   *storage.PageStorage
 	wg        sync.WaitGroup
 	urlChan   chan string
 	depthChan chan int
 }
 
-func NewCrawler(startURL string, maxDepth int, timeout time.Duration) *Crawler {
+func NewCrawler(startURL string, maxDepth int, timeout time.Duration, proxyUrl string, jsonOutput bool) *Crawler {
 	return &Crawler{
 		startURL:  startURL,
 		maxDepth:  maxDepth,
 		timeout:   timeout,
-		storage:   storage.NewPageStorage(),
+		proxyUrl:  proxyUrl,
+		storage:   storage.NewPageStorage(jsonOutput),
 		urlChan:   make(chan string),
 		depthChan: make(chan int),
 	}
@@ -47,7 +49,13 @@ func (c *Crawler) Start() error {
 	}()
 
 	c.wg.Wait()
-	log.Println("finished crawler", c)
+	log.Println("Finished crawler", c)
+	if c.storage.IsJSONOutput() {
+		if err := c.storage.WriteJSONToFile("crawler_results.json"); err != nil {
+			log.Println("Error writing JSON to file:", err)
+		}
+	}
+
 	return nil
 }
 
@@ -60,16 +68,14 @@ func (c *Crawler) crawl(url string, depth int) {
 
 	c.storage.MarkVisited(url)
 
-	data, err := fetcher.Fetch(url, c.timeout)
+	data, err := fetcher.Fetch(url, c.timeout, c.proxyUrl)
 	if err != nil {
 		log.Printf("Error fetching URL %s: %v\n", url, err)
 		return
 	}
 
 	c.storage.StoreContent(url, data)
-	// content, err1 := c.storage.GetContent(url)
 	links := parser.Parse(data)
-	// log.Println(links,content, err1, "links")
 	for _, link := range links {
 		if !c.storage.HasVisited(link) {
 			c.urlChan <- link
