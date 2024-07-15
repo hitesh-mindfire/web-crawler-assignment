@@ -13,13 +13,15 @@ type PageStorage struct {
 	jsonOutput  bool
 	mutex       sync.Mutex
 	urls        []string
+	maxSize     int
 }
 
-func NewPageStorage(jsonOutput bool) *PageStorage {
+func NewPageStorage(jsonOutput bool, maxSize int) *PageStorage {
 	return &PageStorage{
 		visitedUrls: make(map[string]bool),
 		pageContent: make(map[string][]byte),
 		jsonOutput:  jsonOutput,
+		maxSize:     maxSize,
 		urls:        []string{},
 	}
 }

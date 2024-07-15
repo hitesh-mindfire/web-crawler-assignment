@@ -14,19 +14,21 @@ type Crawler struct {
 	maxDepth  int
 	timeout   time.Duration
 	proxyUrl  string
+	maxSize   int
 	storage   *storage.PageStorage
 	wg        sync.WaitGroup
 	urlChan   chan string
 	depthChan chan int
 }
 
-func NewCrawler(startURL string, maxDepth int, timeout time.Duration, proxyUrl string, jsonOutput bool) *Crawler {
+func NewCrawler(startURL string, maxDepth int, timeout time.Duration, proxyUrl string, jsonOutput bool, maxSize int) *Crawler {
 	return &Crawler{
 		startURL:  startURL,
 		maxDepth:  maxDepth,
 		timeout:   timeout,
 		proxyUrl:  proxyUrl,
-		storage:   storage.NewPageStorage(jsonOutput),
+		maxSize:   maxSize,
+		storage:   storage.NewPageStorage(jsonOutput, maxSize),
 		urlChan:   make(chan string),
 		depthChan: make(chan int),
 	}
@@ -68,9 +70,14 @@ func (c *Crawler) crawl(url string, depth int) {
 
 	c.storage.MarkVisited(url)
 
-	data, err := fetcher.Fetch(url, c.timeout, c.proxyUrl)
+	data, size, err := fetcher.Fetch(url, c.timeout, c.proxyUrl)
 	if err != nil {
 		log.Printf("Error fetching URL %s: %v\n", url, err)
+		return
+	}
+
+	if c.maxSize > 0 && size > c.maxSize*1024 {
+		log.Printf("Skipping URL %s due to size limit (%d bytes > %d bytes)\n", url, size, c.maxSize*1024)
 		return
 	}
 

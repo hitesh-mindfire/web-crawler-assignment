@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func Fetch(targetUrl string, timeout time.Duration, proxyUrl string) ([]byte, error) {
+func Fetch(targetUrl string, timeout time.Duration, proxyUrl string) ([]byte, int, error) {
 	client := &http.Client{
 		Timeout: timeout,
 	}
@@ -15,7 +15,7 @@ func Fetch(targetUrl string, timeout time.Duration, proxyUrl string) ([]byte, er
 	if proxyUrl != "" {
 		proxy, err := url.Parse(proxyUrl)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		client.Transport = &http.Transport{
 			Proxy: http.ProxyURL(proxy),
@@ -24,9 +24,14 @@ func Fetch(targetUrl string, timeout time.Duration, proxyUrl string) ([]byte, er
 
 	resp, err := client.Get(targetUrl)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer resp.Body.Close()
 
-	return io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return body, len(body), nil
 }
