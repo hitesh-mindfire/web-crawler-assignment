@@ -7,9 +7,15 @@ import (
 	"time"
 )
 
-func Fetch(targetUrl string, timeout time.Duration, proxyUrl string) ([]byte, int, error) {
+func Fetch(targetUrl string, timeout time.Duration, proxyUrl string, disableRedirects bool) ([]byte, int, error) {
 	client := &http.Client{
 		Timeout: timeout,
+	}
+
+	if disableRedirects {
+		client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		}
 	}
 
 	if proxyUrl != "" {

@@ -10,27 +10,31 @@ import (
 )
 
 type Crawler struct {
-	startURL  string
-	maxDepth  int
-	timeout   time.Duration
-	proxyUrl  string
-	maxSize   int
-	storage   *storage.PageStorage
-	wg        sync.WaitGroup
-	urlChan   chan string
-	depthChan chan int
+	startURL         string
+	maxDepth         int
+	timeout          time.Duration
+	proxyUrl         string
+	maxSize          int
+	disableRedirects bool
+	showSource       bool
+	storage          *storage.PageStorage
+	wg               sync.WaitGroup
+	urlChan          chan string
+	depthChan        chan int
 }
 
-func NewCrawler(startURL string, maxDepth int, timeout time.Duration, proxyUrl string, jsonOutput bool, maxSize int) *Crawler {
+func NewCrawler(startURL string, maxDepth int, timeout time.Duration, proxyUrl string, jsonOutput bool, maxSize int, disableRedirects bool, showSource bool) *Crawler {
 	return &Crawler{
-		startURL:  startURL,
-		maxDepth:  maxDepth,
-		timeout:   timeout,
-		proxyUrl:  proxyUrl,
-		maxSize:   maxSize,
-		storage:   storage.NewPageStorage(jsonOutput, maxSize),
-		urlChan:   make(chan string),
-		depthChan: make(chan int),
+		startURL:         startURL,
+		maxDepth:         maxDepth,
+		timeout:          timeout,
+		proxyUrl:         proxyUrl,
+		maxSize:          maxSize,
+		disableRedirects: disableRedirects,
+		showSource:       showSource,
+		storage:          storage.NewPageStorage(jsonOutput, maxSize),
+		urlChan:          make(chan string),
+		depthChan:        make(chan int),
 	}
 }
 
@@ -39,7 +43,7 @@ func (c *Crawler) Start() error {
 
 	c.wg.Add(1)
 	go c.crawl(c.startURL, 0)
-
+	c.storage.StoreSource(c.startURL, "href")
 	go func() {
 		for url := range c.urlChan {
 			depth := <-c.depthChan
@@ -70,7 +74,7 @@ func (c *Crawler) crawl(url string, depth int) {
 
 	c.storage.MarkVisited(url)
 
-	data, size, err := fetcher.Fetch(url, c.timeout, c.proxyUrl)
+	data, size, err := fetcher.Fetch(url, c.timeout, c.proxyUrl, c.disableRedirects)
 	if err != nil {
 		log.Printf("Error fetching URL %s: %v\n", url, err)
 		return
@@ -81,12 +85,14 @@ func (c *Crawler) crawl(url string, depth int) {
 		return
 	}
 
-	c.storage.StoreContent(url, data)
+	c.storage.StoreContent(url, data, c.showSource)
+
 	links := parser.Parse(data)
-	for _, link := range links {
+	for link, source := range links {
 		if !c.storage.HasVisited(link) {
 			c.urlChan <- link
 			c.depthChan <- depth + 1
+			c.storage.StoreSource(link, source)
 		}
 	}
 }
