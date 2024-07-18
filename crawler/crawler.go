@@ -17,13 +17,14 @@ type Crawler struct {
 	maxSize          int
 	disableRedirects bool
 	showSource       bool
+	insecure         bool
 	storage          *storage.PageStorage
 	wg               sync.WaitGroup
 	urlChan          chan string
 	depthChan        chan int
 }
 
-func NewCrawler(startURL string, maxDepth int, timeout time.Duration, proxyUrl string, jsonOutput bool, maxSize int, disableRedirects bool, showSource bool) *Crawler {
+func NewCrawler(startURL string, maxDepth int, timeout time.Duration, proxyUrl string, jsonOutput bool, maxSize int, disableRedirects bool, showSource bool, insecure bool) *Crawler {
 	return &Crawler{
 		startURL:         startURL,
 		maxDepth:         maxDepth,
@@ -32,6 +33,7 @@ func NewCrawler(startURL string, maxDepth int, timeout time.Duration, proxyUrl s
 		maxSize:          maxSize,
 		disableRedirects: disableRedirects,
 		showSource:       showSource,
+		insecure:         insecure,
 		storage:          storage.NewPageStorage(jsonOutput, maxSize),
 		urlChan:          make(chan string),
 		depthChan:        make(chan int),
@@ -74,7 +76,7 @@ func (c *Crawler) crawl(url string, depth int) {
 
 	c.storage.MarkVisited(url)
 
-	data, size, err := fetcher.Fetch(url, c.timeout, c.proxyUrl, c.disableRedirects)
+	data, size, err := fetcher.Fetch(url, c.timeout, c.proxyUrl, c.disableRedirects, c.insecure)
 	if err != nil {
 		log.Printf("Error fetching URL %s: %v\n", url, err)
 		return

@@ -18,6 +18,7 @@ func main() {
 	maxSize := flag.Int("size", -1, "Page size limit in KB. Default is -1 (no limit)")
 	disableRedirects := flag.Bool("dr", false, "Disable following redirects")
 	showSource := flag.Bool("s", false, "Show the source of the URL based on where it was found")
+	insecure := flag.Bool("insecure", false, "Disable TLS verification")
 	showHelp := flag.Bool("h", false, "")
 
 	flag.Usage = func() {
@@ -38,7 +39,7 @@ func main() {
 
 	timeoutDuration := time.Duration(*timeout) * time.Second
 
-	c := crawler.NewCrawler(*url, *depth, timeoutDuration, *proxy, *jsonOutput, *maxSize, *disableRedirects, *showSource)
+	c := crawler.NewCrawler(*url, *depth, timeoutDuration, *proxy, *jsonOutput, *maxSize, *disableRedirects, *showSource, *insecure)
 
 	if err := c.Start(); err != nil {
 		log.Fatalf("error: %v", err)

@@ -1,13 +1,15 @@
 package fetcher
 
 import (
+	"crypto/tls"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"time"
 )
 
-func Fetch(targetUrl string, timeout time.Duration, proxyUrl string, disableRedirects bool) ([]byte, int, error) {
+func Fetch(targetUrl string, timeout time.Duration, proxyUrl string, disableRedirects bool, insecure bool) ([]byte, int, error) {
 	client := &http.Client{
 		Timeout: timeout,
 	}
@@ -25,6 +27,13 @@ func Fetch(targetUrl string, timeout time.Duration, proxyUrl string, disableRedi
 		}
 		client.Transport = &http.Transport{
 			Proxy: http.ProxyURL(proxy),
+		}
+	}
+
+	if insecure {
+		log.Println("-insecure flag, disable TLS verification")
+		client.Transport = &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}
 	}
 
