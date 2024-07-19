@@ -18,13 +18,14 @@ type Crawler struct {
 	disableRedirects bool
 	showSource       bool
 	insecure         bool
+	uniqueUrls       bool
 	storage          *storage.PageStorage
 	wg               sync.WaitGroup
 	urlChan          chan string
 	depthChan        chan int
 }
 
-func NewCrawler(startURL string, maxDepth int, timeout time.Duration, proxyUrl string, jsonOutput bool, maxSize int, disableRedirects bool, showSource bool, insecure bool) *Crawler {
+func NewCrawler(startURL string, maxDepth int, timeout time.Duration, proxyUrl string, jsonOutput bool, maxSize int, disableRedirects bool, showSource bool, insecure bool, uniqueUrls bool) *Crawler {
 	return &Crawler{
 		startURL:         startURL,
 		maxDepth:         maxDepth,
@@ -34,6 +35,7 @@ func NewCrawler(startURL string, maxDepth int, timeout time.Duration, proxyUrl s
 		disableRedirects: disableRedirects,
 		showSource:       showSource,
 		insecure:         insecure,
+		uniqueUrls:       uniqueUrls,
 		storage:          storage.NewPageStorage(jsonOutput, maxSize),
 		urlChan:          make(chan string),
 		depthChan:        make(chan int),
@@ -46,10 +48,11 @@ func (c *Crawler) Start() error {
 	c.wg.Add(1)
 	go c.crawl(c.startURL, 0)
 	c.storage.StoreSource(c.startURL, "href")
+
 	go func() {
 		for url := range c.urlChan {
 			depth := <-c.depthChan
-			if depth <= c.maxDepth && !c.storage.HasVisited(url) {
+			if depth <= c.maxDepth && (!c.uniqueUrls || !c.storage.HasVisited(url)) {
 				c.wg.Add(1)
 				go c.crawl(url, depth)
 			}
@@ -70,11 +73,13 @@ func (c *Crawler) Start() error {
 func (c *Crawler) crawl(url string, depth int) {
 	defer c.wg.Done()
 
-	if depth > c.maxDepth || c.storage.HasVisited(url) {
+	if depth > c.maxDepth {
 		return
 	}
 
-	c.storage.MarkVisited(url)
+	if c.uniqueUrls {
+		c.storage.MarkVisited(url)
+	}
 
 	data, size, err := fetcher.Fetch(url, c.timeout, c.proxyUrl, c.disableRedirects, c.insecure)
 	if err != nil {
@@ -91,7 +96,7 @@ func (c *Crawler) crawl(url string, depth int) {
 
 	links := parser.Parse(data)
 	for link, source := range links {
-		if !c.storage.HasVisited(link) {
+		if !c.uniqueUrls || !c.storage.HasVisited(link) {
 			c.urlChan <- link
 			c.depthChan <- depth + 1
 			c.storage.StoreSource(link, source)

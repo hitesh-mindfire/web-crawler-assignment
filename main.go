@@ -19,6 +19,7 @@ func main() {
 	disableRedirects := flag.Bool("dr", false, "Disable following redirects")
 	showSource := flag.Bool("s", false, "Show the source of the URL based on where it was found")
 	insecure := flag.Bool("insecure", false, "Disable TLS verification")
+	uniqueUrls := flag.Bool("u", false, "Ensure unique URLs")
 	showHelp := flag.Bool("h", false, "")
 
 	flag.Usage = func() {
@@ -39,7 +40,7 @@ func main() {
 
 	timeoutDuration := time.Duration(*timeout) * time.Second
 
-	c := crawler.NewCrawler(*url, *depth, timeoutDuration, *proxy, *jsonOutput, *maxSize, *disableRedirects, *showSource, *insecure)
+	c := crawler.NewCrawler(*url, *depth, timeoutDuration, *proxy, *jsonOutput, *maxSize, *disableRedirects, *showSource, *insecure, *uniqueUrls)
 
 	if err := c.Start(); err != nil {
 		log.Fatalf("error: %v", err)
