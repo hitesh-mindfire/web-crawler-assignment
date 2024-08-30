@@ -27,15 +27,15 @@ To run the web crawler, use the following commands:
 ```bash
 go mod download
 
-Run the Crawler
+# Run the Crawler
 
 go run main.go -url <starting_url> [options]
 
-Build the Crawler
+# Build the Crawler
 
 go build
 
-Flags
+# Flags
 -url <string>: Required. The starting URL for the crawler.
 -depth <int>: Maximum depth to crawl. Default: 2.
 -timeout <int>: Timeout for each HTTP request in seconds. Default: 2.
@@ -48,8 +48,8 @@ Flags
 -u: Ensure unique URLs are crawled. Default: false.
 -h: Show help message.
 
-Example
-To start crawling from https://example.com with a maximum depth of 3 and a timeout of 5 seconds per request, run:
+# Example
+To start crawling from https://example.com with a maximum depth of 3, run:
 
-go run main.go -url https://example.com -depth 3 -timeout 5
+go run main.go -url https://example.com -depth 3
 ```
